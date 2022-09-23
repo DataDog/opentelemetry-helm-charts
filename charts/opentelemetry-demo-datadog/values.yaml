@@ -2,9 +2,10 @@ deployMode: "deployment"
 useOperator: false
 
 image:
-  repository:  otel/demo
-  otelcolversion: 0.59.0
+  repository:  dineshgurumurthydd/oteldemo
+  otelcolversion: v0.60.0-43-g06146ed97
   pullSecrets: []
+  pullPolicy: Always
 
 observability:
   otelcol:
