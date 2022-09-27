@@ -86,6 +86,9 @@
                 "productCatalogService": {
                     "$ref": "#/definitions/Service"
                 },
+                "quoteService": {
+                    "$ref": "#/definitions/Service"
+                },
                 "recommendationService": {
                     "$ref": "#/definitions/Service"
                 },

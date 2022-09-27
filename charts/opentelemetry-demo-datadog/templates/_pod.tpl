@@ -19,10 +19,15 @@ frontend:
   - product-catalog-service
   - recommendation-service
   - shipping-service
+  - quote-service
 loadgenerator:
   - frontend
 recommendation-service:
   - product-catalog-service
+shipping-service:
+  - quote-service
+product-catalog-service:
+  - featureflag-service
 {{- end}}
 
 
@@ -47,10 +52,10 @@ Note: Consider that dependent variables need to be declared before the reference
 {{- define "otel-demo.pod.env" -}}
 {{- $prefix := include "otel-demo.name" $ }}
 {{/*
-Exclude email service and treat differently because the addr. for the email service needs to contain the http:// protocol prefix.
+Exclude email service  & quote service and treat differently because the addr. for the email service needs to contain the http:// protocol prefix.
 */}}
 {{- if .depends }}
-{{- range $depend := (without .depends "email-service") }}
+{{- range $depend := (without .depends "email-service" "quote-service") }}
 - name: {{ printf "%s_ADDR" $depend | snakecase | upper }}
   value: {{ printf "%s-%s:%0.f" $prefix ($depend | kebabcase) (get $.serviceMapping $depend )}}
 {{- end }}
@@ -59,6 +64,12 @@ Exclude email service and treat differently because the addr. for the email serv
 - name: {{ printf "EMAIL_SERVICE_ADDR" }}
   value: {{ printf "http://%s-email-service:%0.f" $prefix (get $.serviceMapping "email-service" )}}
 {{- end }}
+
+{{- if has "quote-service" .depends }}
+- name: {{ printf "QUOTE_SERVICE_ADDR" }}
+  value: {{ printf "http://%s-quote-service:%0.f" $prefix (get $.serviceMapping "quote-service" )}}
+{{- end }}
+
 {{- end }}
 
 {{- if eq .name "featureflag-service" }}
@@ -98,14 +109,26 @@ Exclude email service and treat differently because the addr. for the email serv
 {{- if eq .deployMode "daemonset" }}
 - name: OTEL_EXPORTER_OTLP_ENDPOINT
   value: http://$(HOST_IP):4317
+- name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+  value: http://$(HOST_IP):4317
+- name: OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+  value: http://$(HOST_IP):4317
 {{- end }}
 {{- if not .useOperator }}
 {{- if eq .deployMode "deployment" }}
 - name: OTEL_EXPORTER_OTLP_ENDPOINT
   value: http://{{ include "otel-demo.name" . }}-otelcol:4317
+- name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+  value: http://{{ include "otel-demo.name" . }}-otelcol:4317
+- name: OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+  value: http://{{ include "otel-demo.name" . }}-otelcol:4317
 {{- end }}
 {{- else }}
 - name: OTEL_EXPORTER_OTLP_ENDPOINT
+  value: http://{{ include "otel-demo.name" . }}-collector:4317
+- name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+  value: http://{{ include "otel-demo.name" . }}-collector:4317
+- name: OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
   value: http://{{ include "otel-demo.name" . }}-collector:4317
 {{- end }}
 

@@ -84,36 +84,9 @@ receivers:
       ddsource: java
       service: ad-service
 
-  filelog/checkout:
+  filelog/go:
     include:
       - /var/log/pods/**/*checkout*/*.log
-    include_file_path: true
-    include_file_path_resolved: true
-    include_file_name_resolved: true
-    start_at: end
-    poll_interval: 500ms
-    operators:
-      # Detect pod, namespace, and container names from the file name.
-      - id: parse_body
-        type: json_parser
-        parse_to: body
-      - id: parse_log
-        type: json_parser
-        parse_from: body.log
-      - id: severity
-        type: severity_parser
-        parse_from: attributes.severity
-      - id: trace
-        type: trace_parser
-        trace_id:
-          parse_from: attributes.trace_id
-        span_id:
-          parse_from: attributes.span_id
-    attributes:
-      ddsource: golang
-
-  filelog/productcatalog:
-    include:
       - /var/log/pods/**/*product-catalog*/*.log
     include_file_path: true
     include_file_path_resolved: true
@@ -139,6 +112,7 @@ receivers:
           parse_from: attributes.span_id
     attributes:
       ddsource: golang
+
   filelog/recommendationservice:
     include:
       - /var/log/pods/**/*recommendation*/*.log
@@ -164,6 +138,31 @@ receivers:
     attributes:
       ddsource: python
       service: recommendation-service
+
+  filelog/currencyservice:
+    include:
+      - /var/log/pods/**/*currency-service*/*.log
+    include_file_path: true
+    include_file_path_resolved: true
+    include_file_name_resolved: true
+    start_at: end
+    poll_interval: 500ms
+    operators:
+      # Detect pod, namespace, and container names from the file name.
+      - id: parse_body
+        type: json_parser
+        parse_to: body
+      - id: parse_log
+        type: regex_parser
+        parse_from: body.log
+        regex: '(?P<msg>.*) trace_id=(?P<trace_id>.*)'
+      - id: trace
+        type: trace_parser
+        trace_id:
+          parse_from: attributes.trace_id
+    attributes:
+      service: currency-service
+
 exporters:
   datadog:
     api:
@@ -196,6 +195,6 @@ service:
       processors: [resourcedetection, k8sattributes, batch]
       exporters: [datadog]
     logs:
-      receivers: [filelog/checkout,filelog/adservice, filelog/recommendationservice, filelog/productcatalog]
+      receivers: [filelog/go,filelog/adservice, filelog/recommendationservice, filelog/currencyservice ]
       processors: [resourcedetection, k8sattributes, batch]
       exporters: [datadog]

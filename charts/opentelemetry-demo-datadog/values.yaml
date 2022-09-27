@@ -171,6 +171,11 @@ components:
     podAnnotations: {}
     #  instrumentation.opentelemetry.io/inject-sdk: "true"
 
+  quoteService:
+    enabled: true
+    servicePort: 8080
+    podAnnotations: {}
+    #  instrumentation.opentelemetry.io/inject-sdk: "true"
   recommendationService:
     enabled: true
     servicePort: 8080
