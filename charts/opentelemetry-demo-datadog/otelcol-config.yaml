@@ -167,8 +167,6 @@ exporters:
   datadog:
     api:
       key: "$DD_API_KEY"
-    logs:
-      send_log_record_body: false
 
 processors:
   resourcedetection:
