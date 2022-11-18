@@ -1,0 +1,35 @@
+ingest: true
+opentelemetry-demo:
+  components:
+    adService: &override
+      envOverrides:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: 'http://{{ include "otel-demo.name" . }}-datadog:4317'
+    redis: *override
+    cartService: *override
+    checkoutService: *override
+    currencyService: *override
+    emailService: *override
+    featureflagService: *override
+    ffsPostgres: *override
+    frontend: *override
+    frontendProxy: *override
+    loadgenerator: *override
+    paymentService: *override
+    productCatalogService: *override
+    recommendationService: *override
+    shippingService: *override
+    quoteService: *override
+  observability:
+    otelcol:
+      enabled: false
+datadog:
+  datadog:
+    tags:
+      - "env:otel-ingest"
+    apiKey: ${DD_API_KEY}
+    otlp:
+      receiver:
+        protocols:
+          grpc:
+            enabled: true
