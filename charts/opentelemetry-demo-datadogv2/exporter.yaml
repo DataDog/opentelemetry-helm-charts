@@ -1,9 +1,72 @@
 ingest: false
+filelogs: &filelogs
+  include_file_path: true
+  include_file_path_resolved: true
+  include_file_name_resolved: true
+  start_at: end
+  poll_interval: 500ms
+  operators:
+    # Detect pod, namespace, and container names from the file name.
+    - id: parse_body
+      type: json_parser
+      parse_to: body
+    - id: parse_log
+      type: json_parser
+      parse_from: body.log
+    - id: trace
+      type: trace_parser
+      trace_id:
+        parse_from: attributes.contextMap.trace_id
+      span_id:
+        parse_from: attributes.contextMap.span_id
+attributes: &attributes
+  ddtags: "env:otel-exporter"
 opentelemetry-demo:
+  default:
+    envOverrides:
+      - name: HOST_IP
+        valueFrom:
+          fieldRef:
+            fieldPath: status.hostIP
+      - name: OTEL_RESOURCE_ATTRIBUTES
+        value: service.name=$(OTEL_SERVICE_NAME),k8s.namespace.name=$(OTEL_K8S_NAMESPACE),k8s.node.name=$(OTEL_K8S_NODE_NAME),k8s.pod.name=$(OTEL_K8S_POD_NAME),deployment.environment=$(OTEL_K8S_NAMESPACE)
   opentelemetry-collector:
     mode: "daemonset"
     config:
       receivers:
+        filelog/adservice:
+          <<: *filelogs
+          include:
+            - /var/log/pods/**/*ad-service*/*.log
+          attributes:
+            ddsource: java
+            service: ad-service
+        filelog/go:
+          <<: *filelogs
+          include:
+            - /var/log/pods/**/*checkout*/*.log
+            - /var/log/pods/**/*product-catalog*/*.log
+            - /var/log/pods/**/*otel-col*/*.log
+          attributes:
+            <<: *attributes
+            ddsource: golang
+
+        filelog/recommendationservice:
+          <<: *filelogs
+          include:
+            - /var/log/pods/**/*recommendation*/*.log
+          attributes:
+            <<: *attributes
+            ddsource: python
+            service: recommendation-service
+        filelog/currencyservice:
+          <<: *filelogs
+          include:
+            - /var/log/pods/**/*currency-service*/*.log
+          attributes:
+            <<: *attributes
+            service: currency-service
+            ddsource: cpp
         otlp:
           protocols:
             http:
@@ -39,6 +102,14 @@ opentelemetry-demo:
                   - targets: [ '0.0.0.0:8888' ]
 
       processors:
+        resourcedetection:
+          # ensures host.name and other important resource tags
+          # get picked up
+          detectors: [env, gcp, ecs, ec2, azure, system]
+          timeout: 5s
+          override: false
+        # adds various tags related to k8s
+        k8sattributes:
         batch:
           # Datadog APM Intake limit is 3.2MB. Let's make sure the batches do not
           # go over that.
@@ -48,6 +119,7 @@ opentelemetry-demo:
 
       exporters:
         datadog:
+          hostname: myhostname
           api:
             site: datadoghq.com
             key: ${DD_API_KEY}
@@ -55,12 +127,27 @@ opentelemetry-demo:
             tags:
               - "env:otel-exporter"
       service:
+        telemetry:
+          logs:
+            level: debug
+          metrics:
+            address: 0.0.0.0:8888
         pipelines:
           metrics:
             receivers: [ hostmetrics, otlp ]
-            processors: [ batch ]
+            processors: [resourcedetection, k8sattributes, batch]
             exporters: [ datadog ]
           traces:
             receivers: [ otlp ]
-            processors: [ batch ]
+            processors: [resourcedetection, k8sattributes, batch]
+            exporters: [ datadog ]
+          logs:
+            receivers:
+              [
+                filelog/go,
+                filelog/adservice,
+                filelog/recommendationservice,
+                filelog/currencyservice,
+              ]
+            processors: [ resourcedetection, k8sattributes, batch ]
             exporters: [ datadog ]
