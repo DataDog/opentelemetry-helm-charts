@@ -51,6 +51,11 @@ opentelemetry-demo:
         limits:
           memory:
             1Gi
+    shippingService:
+      resources:
+        limits:
+          memory:
+            1Gi
   opentelemetry-collector:
     resources:
       limits:
