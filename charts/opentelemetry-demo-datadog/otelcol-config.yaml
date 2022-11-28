@@ -150,6 +150,10 @@ exporters:
   datadog:
     host_metadata:
       tags: [env:otel]
+    metrics:
+      histograms:
+        mode: counters
+        send_count_sum_metrics: true
     api:
       key: "$DD_API_KEY"
 
