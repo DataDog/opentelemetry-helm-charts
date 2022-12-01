@@ -10,18 +10,25 @@ exporter mode (otel collector + datadog exporter).
 
 ## Installing the Chart
 
-Add OpenTelemetry Helm repository:
+Clone the chart:
 
 ```console
-helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+git clone git@github.com:DataDog/opentelemetry-helm-charts.git
+cd opentelemetry-helm-charts/opentelemetry-demo-datadogv2
+```
+
+Create a secret with your datadog api key (alternatively you may update the secret in
+agent-ingest.yaml/collector-exporter.yaml or --set it when installing):
+```console
+kubectl create secret generic datadog-secrets --from-literal api-key=<YOUR_KEY_HERE>
 ```
 
 To install the chart with the release name my-otel-demo using ingest mode, run the following command:
 ```console
-helm install my-otel-demo --set datadog.datadog.apiKey=$KEY --values ./ingest.yaml --values ./resource_overrides.yaml .
+helm install my-otel-demo --values ./agent-ingest.yaml --values ./resource_overrides.yaml .
 ```
 
 Alternatively, you may run the following command to install the chart using exporter mode:
 ```
-helm install my-otel-demo --set opentelemetry-demo.opentelemetry-collector.config.exporters.datadog.api.key=$KEY --values ./exporter.yaml --values ./resource_overrides.yaml .
+helm install my-otel-demo --values ./collector-exporter.yaml --values ./resource_overrides.yaml .
 ```

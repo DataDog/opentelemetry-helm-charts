@@ -25,9 +25,9 @@ opentelemetry-demo:
       enabled: false
 datadog:
   datadog:
+    apiKeyExistingSecret: "datadog-secrets"
     tags:
       - "env:otel-ingest"
-    apiKey: ${DD_API_KEY}
     otlp:
       receiver:
         protocols:
