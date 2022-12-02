@@ -25,10 +25,10 @@ kubectl create secret generic datadog-secrets --from-literal api-key=<YOUR_KEY_H
 
 To install the chart with the release name my-otel-demo using ingest mode, run the following command:
 ```console
-helm install my-otel-demo --values ./agent-ingest.yaml --values ./resource_overrides.yaml .
+helm install my-otel-demo --values ./agent-ingest.yaml .
 ```
 
 Alternatively, you may run the following command to install the chart using exporter mode:
 ```
-helm install my-otel-demo --values ./collector-exporter.yaml --values ./resource_overrides.yaml .
+helm install my-otel-demo --values ./collector-exporter.yaml .
 ```
