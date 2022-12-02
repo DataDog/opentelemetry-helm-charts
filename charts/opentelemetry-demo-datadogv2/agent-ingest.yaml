@@ -4,7 +4,7 @@ opentelemetry-demo:
     adService: &override
       envOverrides:
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
-          value: 'http://{{ include "otel-demo.name" . }}-datadog:4317'
+          value: 'http://{{ include "otel-demo.name" . }}-datadog:3317'
     redis: *override
     cartService: *override
     checkoutService: *override
@@ -33,3 +33,4 @@ datadog:
         protocols:
           grpc:
             enabled: true
+            endpoint: "0.0.0.0:3317"

@@ -1,26 +1,4 @@
 ingest: false
-filelogs: &filelogs
-  include_file_path: true
-  include_file_path_resolved: true
-  include_file_name_resolved: true
-  start_at: end
-  poll_interval: 500ms
-  operators:
-    # Detect pod, namespace, and container names from the file name.
-    - id: parse_body
-      type: json_parser
-      parse_to: body
-    - id: parse_log
-      type: json_parser
-      parse_from: body.log
-    - id: trace
-      type: trace_parser
-      trace_id:
-        parse_from: attributes.contextMap.trace_id
-      span_id:
-        parse_from: attributes.contextMap.span_id
-attributes: &attributes
-  ddtags: "env:otel-exporter"
 opentelemetry-demo:
   default:
     envOverrides:
@@ -41,44 +19,19 @@ opentelemetry-demo:
     mode: "daemonset"
     config:
       receivers:
-        filelog/adservice:
-          <<: *filelogs
-          include:
-            - /var/log/pods/**/*ad-service*/*.log
-          attributes:
-            ddsource: java
-            service: ad-service
-        filelog/go:
-          <<: *filelogs
-          include:
-            - /var/log/pods/**/*checkout*/*.log
-            - /var/log/pods/**/*product-catalog*/*.log
-            - /var/log/pods/**/*otel-col*/*.log
-          attributes:
-            <<: *attributes
-            ddsource: golang
-
-        filelog/recommendationservice:
-          <<: *filelogs
-          include:
-            - /var/log/pods/**/*recommendation*/*.log
-          attributes:
-            <<: *attributes
-            ddsource: python
-            service: recommendation-service
-        filelog/currencyservice:
-          <<: *filelogs
-          include:
-            - /var/log/pods/**/*currency-service*/*.log
-          attributes:
-            <<: *attributes
-            service: currency-service
-            ddsource: cpp
-        otlp:
-          protocols:
-            http:
-            grpc:
-        # The hostmetrics receiver is required to get correct infrastructure metrics in Datadog.
+        prometheus:
+          config:
+            scrape_configs:
+              - job_name: "otelcol"
+                scrape_interval: 10s
+                static_configs:
+                  - targets: [ "0.0.0.0:8888" ]
+                metric_relabel_configs:
+                  - source_labels: [ __name__ ]
+                    regex: ".*grpc_io.*"
+                    action: drop
+        k8s_cluster:
+          collection_interval: 10s
         hostmetrics:
           collection_interval: 10s
           scrapers:
@@ -99,54 +52,154 @@ opentelemetry-demo:
             memory:
             network:
             processes:
-        # The prometheus receiver scrapes metrics needed for the OpenTelemetry Collector Dashboard.
-        prometheus:
-          config:
-            scrape_configs:
-              - job_name: 'otelcol'
-                scrape_interval: 10s
-                static_configs:
-                  - targets: [ '0.0.0.0:8888' ]
+        otlp:
+          protocols:
+            grpc:
+            http:
+        filelog/adservice:
+          include_file_path: true
+          include_file_path_resolved: true
+          include_file_name_resolved: true
+          start_at: end
+          poll_interval: 500ms
+          include:
+            - /var/log/pods/**/*ad-service*/*.log
+          operators:
+            # Detect pod, namespace, and container names from the file name.
+            - id: parse_body
+              type: json_parser
+              parse_to: body
+            - id: parse_log
+              type: json_parser
+              parse_from: body.log
+            - id: trace
+              type: trace_parser
+              trace_id:
+                parse_from: attributes.contextMap.trace_id
+              span_id:
+                parse_from: attributes.contextMap.span_id
+          attributes:
+            ddsource: java
+            service: ad-service
+        filelog/go:
+          include:
+            - /var/log/pods/**/*checkout*/*.log
+            - /var/log/pods/**/*product-catalog*/*.log
+            - /var/log/pods/**/*otel-col*/*.log
+          include_file_path: true
+          include_file_path_resolved: true
+          include_file_name_resolved: true
+          start_at: end
+          poll_interval: 500ms
+          operators:
+            # Detect pod, namespace, and container names from the file name.
+            - id: parse_body
+              type: json_parser
+              parse_to: body
+            - id: parse_log
+              type: json_parser
+              parse_from: body.log
+            - id: trace
+              type: trace_parser
+              trace_id:
+                parse_from: attributes.trace_id
+              span_id:
+                parse_from: attributes.span_id
+          attributes:
+            ddsource: golang
+            ddtags: env:otel-collector
+
+        filelog/recommendationservice:
+          include:
+            - /var/log/pods/**/*recommendation*/*.log
+          include_file_path: true
+          include_file_path_resolved: true
+          include_file_name_resolved: true
+          start_at: end
+          poll_interval: 500ms
+          operators:
+            # Detect pod, namespace, and container names from the file name.
+            - id: parse_body
+              type: json_parser
+              parse_to: body
+            - id: parse_log
+              type: json_parser
+              parse_from: body.log
+            - id: trace
+              type: trace_parser
+              trace_id:
+                parse_from: attributes.otelTraceID
+              span_id:
+                parse_from: attributes.otelSpanID
+          attributes:
+            ddsource: python
+            service: recommendation-service
+            ddtags: env:otel-collector
+
+        filelog/currencyservice:
+          include:
+            - /var/log/pods/**/*currency-service*/*.log
+          include_file_path: true
+          include_file_path_resolved: true
+          include_file_name_resolved: true
+          start_at: end
+          poll_interval: 500ms
+          operators:
+            # Detect pod, namespace, and container names from the file name.
+            - id: parse_body
+              type: json_parser
+              parse_to: body
+            - id: parse_log
+              type: regex_parser
+              parse_from: body.log
+              regex: "(?P<msg>.*) trace_id=(?P<trace_id>.*)"
+            - id: trace
+              type: trace_parser
+              trace_id:
+                parse_from: attributes.trace_id
+          attributes:
+            service: currency-service
+            ddsource: cpp
+            ddtags: env:otel-collector
+      exporters:
+        datadog:
+          host_metadata:
+            tags: [ env:otel-collector ]
+          metrics:
+            histograms:
+              mode: counters
+              send_count_sum_metrics: true
+          api:
+            key: "$DD_API_KEY"
 
       processors:
         resourcedetection:
           # ensures host.name and other important resource tags
           # get picked up
-          detectors: [env, gcp, ecs, ec2, azure, system]
+          detectors: [ env, gcp, ecs, ec2, azure, system ]
           timeout: 5s
           override: false
         # adds various tags related to k8s
         k8sattributes:
         batch:
-          # Datadog APM Intake limit is 3.2MB. Let's make sure the batches do not
-          # go over that.
           send_batch_max_size: 1000
           send_batch_size: 100
           timeout: 10s
 
-      exporters:
-        datadog:
-          hostname: myhostname
-          api:
-            site: datadoghq.com
-            key: ${DD_API_KEY}
-          host_metadata:
-            tags:
-              - "env:otel-exporter"
       service:
         telemetry:
           logs:
-            level: debug
-          metrics:
-            address: 0.0.0.0:8888
+            encoding: "json"
+            initial_fields:
+              - service: "otel-collector"
         pipelines:
           metrics:
-            receivers: [ hostmetrics, otlp ]
-            processors: [resourcedetection, k8sattributes, batch]
+            receivers: [ otlp, k8s_cluster, hostmetrics, prometheus ]
+            processors: [ resourcedetection, k8sattributes, batch ]
             exporters: [ datadog ]
           traces:
             receivers: [ otlp ]
-            processors: [resourcedetection, k8sattributes, batch]
+            processors: [ resourcedetection, k8sattributes, batch ]
             exporters: [ datadog ]
           logs:
             receivers:
