@@ -12,8 +12,6 @@ ingest: false
               - source_labels: [ __name__ ]
                 regex: ".*grpc_io.*"
                 action: drop
-    k8s_cluster:
-      collection_interval: 10s
     hostmetrics:
       collection_interval: 10s
       scrapers:
@@ -177,7 +175,7 @@ ingest: false
           - service: "otel-collector"
     pipelines:
       metrics:
-        receivers: [ otlp, k8s_cluster, hostmetrics, prometheus ]
+        receivers: [ otlp, hostmetrics, prometheus ]
         processors: [ resourcedetection, k8sattributes, batch ]
         exporters: [ datadog ]
       traces:
@@ -198,6 +196,8 @@ ingest: false
   envOverrides:
     - name: OTEL_EXPORTER_OTLP_ENDPOINT
       value: 'http://$(HOST_IP):$(OTLP_PORT_1)'
+    - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      value: 'http://$(HOST_IP):$(OTLP_PORT_2)/v1/traces'
     - name: LOCUST_HEADLESS
       value: "true"
 opentelemetry-demo:
