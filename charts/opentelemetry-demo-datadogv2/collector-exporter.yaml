@@ -196,8 +196,6 @@ ingest: false
   envOverrides:
     - name: OTEL_EXPORTER_OTLP_ENDPOINT
       value: 'http://$(HOST_IP):$(OTLP_PORT_1)'
-    - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
-      value: 'http://$(HOST_IP):$(OTLP_PORT_2)/v1/traces'
     - name: LOCUST_HEADLESS
       value: "true"
 opentelemetry-demo:
@@ -207,7 +205,14 @@ opentelemetry-demo:
     cartService: *override
     checkoutService: *override
     currencyService: *override
-    emailService: *override
+    emailService:
+      envOverrides:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: 'http://$(HOST_IP):$(OTLP_PORT_1)'
+        - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+          value: 'http://$(HOST_IP):$(OTLP_PORT_2)/v1/traces'
+        - name: LOCUST_HEADLESS
+          value: "true"
     featureflagService: *override
     ffsPostgres: *override
     frontend: *override
