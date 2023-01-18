@@ -1,6 +1,7 @@
 .vscode
 .idea
 Chart.lock
+=======
 
 ### Helm ###
 **/charts/*.tgz
