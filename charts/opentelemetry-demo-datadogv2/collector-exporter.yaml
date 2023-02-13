@@ -35,7 +35,6 @@ ingest: false
     otlp:
       protocols:
         grpc:
-          endpoint: 0.0.0.0:5317
         http:
     filelog/adservice:
       include_file_path: true
@@ -88,7 +87,7 @@ ingest: false
             parse_from: attributes.span_id
       attributes:
         ddsource: golang
-        ddtags: env:otel-collector
+        ddtags: env:otel
 
     filelog/recommendationservice:
       include:
@@ -115,7 +114,7 @@ ingest: false
       attributes:
         ddsource: python
         service: recommendation-service
-        ddtags: env:otel-collector
+        ddtags: env:otel
 
     filelog/currencyservice:
       include:
@@ -141,15 +140,17 @@ ingest: false
       attributes:
         service: currency-service
         ddsource: cpp
-        ddtags: env:otel-collector
+        ddtags: env:otel
   exporters:
     datadog:
       host_metadata:
-        tags: [ env:otel-collector ]
+        tags: [ env:otel ]
       metrics:
         histograms:
           mode: counters
           send_count_sum_metrics: true
+      traces:
+        span_name_as_resource_name: true
       api:
         key: "$DD_API_KEY"
 
@@ -200,6 +201,7 @@ ingest: false
       value: "true"
 opentelemetry-demo:
   components:
+    accountingService: *override
     adService: *override
     redis: *override
     cartService: *override
@@ -215,7 +217,17 @@ opentelemetry-demo:
           value: "true"
     featureflagService: *override
     ffsPostgres: *override
-    frontend: *override
+    frauddetectionService: *override
+    frontend:
+      envOverrides:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: 'http://$(HOST_IP):$(OTLP_PORT_1)'
+        - name: LOCUST_HEADLESS
+          value: "true"
+        - name: DD_RUM_APPLICATION_ID
+          value: "XX"
+        - name: DD_RUM_CLIENT_TOKEN
+          value: "XX"
     frontendProxy: *override
     loadgenerator: *override
     paymentService: *override
@@ -230,23 +242,28 @@ opentelemetry-demo:
           fieldRef:
             fieldPath: status.hostIP
       - name: OTLP_PORT_1
-        value: "5317"
+        value: "4317"
       - name: OTLP_PORT_2
-        value: "5318"
+        value: "4318"
       - name: OTEL_RESOURCE_ATTRIBUTES
         value: >-
-          service.name=$(OTEL_SERVICE_NAME),
-          k8s.namespace.name=$(OTEL_K8S_NAMESPACE),
-          k8s.node.name=$(OTEL_K8S_NODE_NAME),
-          k8s.pod.name=$(OTEL_K8S_POD_NAME),
-          deployment.environment=$(OTEL_K8S_NAMESPACE)
+          service.name=$(OTEL_SERVICE_NAME),k8s.namespace.name=$(OTEL_K8S_NAMESPACE),k8s.node.name=$(OTEL_K8S_NODE_NAME),k8s.Apod.name=$(OTEL_K8S_POD_NAME),deployment.environment=$(OTEL_K8S_NAMESPACE),host.name=$(OTEL_K8S_NODE_NAME)
+
   opentelemetry-collector:
+    clusterRole:
+      create: true
+    image:
+      tag: 0.69.0
+    resources:
+      limits:
+        memory: 1Gi
+    presets:
+      logsCollection:
+        enabled: true
+        includeCollectorLogs: true
     ports:
       otlp:
         enabled: true
-        containerPort: 5317
-        servicePort: 5317
-        hostPort: 5317
         protocol: TCP
     extraEnvs:
       - name: DD_API_KEY

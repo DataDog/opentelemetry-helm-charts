@@ -2,7 +2,7 @@ apiVersion: v2
 name: opentelemetry-demo-datadog
 description: OpenTelemetry Demo Helm Chart for Datadog
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "0.1.0"
 dependencies:
   - name: datadog
@@ -10,5 +10,5 @@ dependencies:
     version: 3.3.0
     repository: https://helm.datadoghq.com
   - name: opentelemetry-demo
-    version: 0.12.6
+    version: 0.15.4
     repository: https://open-telemetry.github.io/opentelemetry-helm-charts

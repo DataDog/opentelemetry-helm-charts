@@ -39,7 +39,16 @@ opentelemetry-demo:
           value: "true"
     featureflagService: *override
     ffsPostgres: *override
-    frontend: *override
+    frontend:
+      envOverrides:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: 'http://$(HOST_IP):$(OTLP_PORT_1)'
+        - name: LOCUST_HEADLESS
+          value: "true"
+        - name: DD_RUM_APPLICATION_ID
+          value: "XX"
+        - name: DD_RUM_CLIENT_TOKEN
+          value: "XX"
     frontendProxy: *override
     loadgenerator: *override
     paymentService: *override

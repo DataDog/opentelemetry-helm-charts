@@ -1,4 +1,85 @@
 opentelemetry-demo:
+  default:
+    image:
+      repository: dineshgurumurthydd/oteldemo
+      pullPolicy: Always
+  components:
+    accountingService:
+      resources:
+        limits:
+          memory: 200Mi
+    adService:
+      resources:
+        limits:
+          memory: 500Mi
+    cartService:
+      resources:
+        limits:
+          memory: 200Mi
+    checkoutService:
+      resources:
+        limits:
+          memory: 500Mi
+    currencyService:
+      resources:
+        limits:
+          memory: 200Mi
+    emailService:
+      resources:
+        limits:
+          memory: 200Mi
+    frauddetectionService:
+      resources:
+        limits:
+          memory: 200Mi
+    frontend:
+      resources:
+        limits:
+          memory: 200Mi
+    frontendProxy:
+      resources:
+        limits:
+          memory: 200Mi
+    paymentService:
+      resources:
+        limits:
+          memory: 200Mi
+    quoteService:
+      resources:
+        limits:
+          memory: 200Mi
+    recommendationService:
+      resources:
+        limits:
+          memory: 200Mi
+    shippingService:
+      resources:
+        limits:
+          memory: 200Mi
+    redis:
+      resources:
+        limits:
+          memory: 200Mi
+    loadgenerator:
+      resources:
+        limits:
+          memory: 200Mi
+    ffsPostgres:
+      resources:
+        limits:
+          memory: 200Mi
+    productCatalogService:
+      resources:
+        limits:
+          memory: 200Mi
+    featureflagService:
+      resources:
+        limits:
+          memory: 1Gi
+    kafka:
+      resources:
+        limits:
+          memory: 1Gi
   observability:
     jaeger:
       enabled: false
@@ -6,3 +87,6 @@ opentelemetry-demo:
       enabled: false
     prometheus:
       enabled: false
+
+
+
