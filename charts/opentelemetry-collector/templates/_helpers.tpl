@@ -5,6 +5,10 @@ Expand the name of the chart.
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
+{{- define "opentelemetry-collector.lowercase_chartname" -}}
+{{- default .Chart.Name | lower }}
+{{- end }}
+
 {{/*
 Get component name
 */}}
@@ -93,13 +97,13 @@ Create the name of the clusterRoleBinding to use
 
 {{- define "opentelemetry-collector.podAnnotations" -}}
 {{- if .Values.podAnnotations }}
-{{- .Values.podAnnotations | toYaml }}
+{{- tpl (.Values.podAnnotations | toYaml) . }}
 {{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.podLabels" -}}
 {{- if .Values.podLabels }}
-{{- .Values.podLabels | toYaml }}
+{{- tpl (.Values.podLabels | toYaml) . }}
 {{- end }}
 {{- end }}
 

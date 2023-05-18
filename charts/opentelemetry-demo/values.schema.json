@@ -11,14 +11,24 @@
     "global": {
       "type": "object"
     },
-    "observability": {
-      "$ref": "#/definitions/Observability"
-    },
     "default": {
       "$ref": "#/definitions/Default"
     },
     "serviceAccount": {
-      "type": "string"
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "create": {
+          "type": "boolean"
+        },
+        "annotations": {
+          "type": "object"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["create"]
     },
     "components": {
       "$ref": "#/definitions/Components"
@@ -38,7 +48,6 @@
   },
   "required": [
     "components",
-    "observability",
     "serviceAccount"
   ],
   "definitions": {
@@ -47,66 +56,66 @@
       "additionalProperties": false,
       "properties": {
         "accountingService": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "adService": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "cartService": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "checkoutService": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "currencyService": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "emailService": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "featureflagService": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "frauddetectionService": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "frontend": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "frontendProxy": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "loadgenerator": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "paymentService": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "productCatalogService": {
-          "$ref": "#/definitions/Service"
-        },
-        "recommendationService": {
-          "$ref": "#/definitions/Service"
-        },
-        "shippingService": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "quoteService": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
+        },
+        "recommendationService": {
+          "$ref": "#/definitions/Component"
+        },
+        "shippingService": {
+          "$ref": "#/definitions/Component"
         },
         "ffsPostgres": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "kafka": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         },
         "redis": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Component"
         }
       },
       "title": "Components"
     },
-    "Service": {
+    "Component": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -129,11 +138,8 @@
         "imageOverride": {
           "$ref": "#/definitions/Image"
         },
-        "serviceType": {
-          "type": "string"
-        },
-        "servicePort": {
-          "type": "integer"
+        "service": {
+          "$ref": "#/definitions/Service"
         },
         "ports": {
           "type": "array",
@@ -160,6 +166,9 @@
         "configuration": {
           "type": "object"
         },
+        "livenessProbe": {
+          "$ref": "#/definitions/LivenessProbe"
+        },
         "schedulingRules": {
           "$ref": "#/definitions/SchedulingRules"
         },
@@ -170,10 +179,24 @@
           "$ref": "#/definitions/ContainerResources"
         },
         "securityContext": {
-          "type": "object"
+          "$ref": "#/definitions/SecurityContext"
         },
         "ingress": {
           "$ref": "#/definitions/Ingress"
+        },
+        "initContainers": {
+          "type": "array",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "image": {
+              "type": "string"
+            },
+            "command": {
+              "type": "object"
+            }
+          }
         }
       },
       "required": [
@@ -324,6 +347,25 @@
         "key"
       ]
     },
+    "Service": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer"
+        },
+        "nodePort": {
+          "type": "integer"
+        },
+        "annotations": {
+          "type": "object"
+        }
+      },
+      "title": "Service"
+    },
     "Port": {
       "type": "object",
       "additionalProperties": false,
@@ -340,53 +382,6 @@
         "value"
       ],
       "title": "Port"
-    },
-    "Observability": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "otelcol": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "enabled": {
-              "type": "boolean"
-            }
-          }
-        },
-        "jaeger": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "enabled": {
-              "type": "boolean"
-            }
-          }
-        },
-        "prometheus": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "enabled": {
-              "type": "boolean"
-            }
-          }
-        },
-        "grafana": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "enabled": {
-              "type": "boolean"
-            }
-          }
-        }
-      },
-      "required": [
-        "jaeger",
-        "otelcol"
-      ],
-      "title": "Observability"
     },
     "Image": {
       "type": "object",
@@ -607,6 +602,135 @@
       "required": [
         "enabled"
       ]
+    },
+    "SecurityContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowPrivilegeEscalation": {
+          "type": "boolean"
+        },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "add": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "drop": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "privileged": {
+          "type": "boolean"
+        },
+        "procMount": {
+          "type": "string"
+        },
+        "readOnlyRootFilesystem": {
+          "type": "boolean"
+        },
+        "runAsGroup": {
+          "type": "integer"
+        },
+        "runAsNonRoot": {
+          "type": "boolean"
+        },
+        "runAsUser": {
+          "type": "integer"
+        },
+        "seLinuxOptions": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "level": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "user": {
+              "type": "string"
+            }
+          },
+          "privileged": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "LivenessProbe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "httpGet"
+      ],
+      "properties": {
+        "httpGet": {
+          "type": "object",
+          "required": [
+            "port"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "host": {
+              "type": "string"
+            },
+            "scheme": {
+              "type": "string"
+            },
+            "httpHeaders": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "value"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "port": {
+              "type": "integer"
+            }
+          }
+        },
+        "initialDelaySeconds": {
+          "type": "integer"
+        },
+        "timeoutSeconds": {
+          "type": "integer"
+        },
+        "periodSeconds": {
+          "type": "integer"
+        },
+        "successThreshold": {
+          "type": "integer"
+        },
+        "failureThreshold": {
+          "type": "integer"
+        }
+      }
     }
   }
 }

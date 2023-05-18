@@ -14,6 +14,7 @@ spec:
     metadata:
       labels:
         {{- include "otel-demo.selectorLabels" . | nindent 8 }}
+        {{- include "otel-demo.workloadLabels" . | nindent 8 }}
       {{- if .podAnnotations }}
       annotations:
         {{- toYaml .podAnnotations | nindent 8 }}
@@ -23,9 +24,7 @@ spec:
       imagePullSecrets:
         {{- ((.imageOverride).pullSecrets) | default .defaultValues.image.pullSecrets | toYaml | nindent 8}}
       {{- end }}
-      {{- with .serviceAccountName }}
-      serviceAccountName: {{ .serviceAccountName}}
-      {{- end }}
+      serviceAccountName: {{ include "otel-demo.serviceAccountName" .}}
       {{- $schedulingRules := .schedulingRules | default dict }}
       {{- if or .defaultValues.schedulingRules.nodeSelector $schedulingRules.nodeSelector}}
       nodeSelector:
@@ -41,13 +40,13 @@ spec:
       {{- end }}
       containers:
         - name: {{ .name }}
-          image: '{{ ((.imageOverride).repository) | default .defaultValues.image.repository }}:{{ ((.imageOverride).tag) | default (printf "v%s-%s" (default .Chart.AppVersion .defaultValues.image.tag) (replace "-" "" .name)) }}'
+          image: '{{ ((.imageOverride).repository) | default .defaultValues.image.repository }}:{{ ((.imageOverride).tag) | default (printf "%s-%s" (default .Chart.AppVersion .defaultValues.image.tag) (replace "-" "" .name)) }}'
           imagePullPolicy: {{ ((.imageOverride).pullPolicy) | default .defaultValues.image.pullPolicy }}
           {{- if .command }}
           command:
             {{- .command | toYaml | nindent 10 -}}
           {{- end }}
-          {{- if or .ports .servicePort}}
+          {{- if or .ports .service}}
           ports:
             {{- include "otel-demo.pod.ports" . | nindent 10 }}
           {{- end }}
@@ -55,11 +54,14 @@ spec:
             {{- include "otel-demo.pod.env" . | nindent 10 }}
           resources:
             {{- .resources | toYaml | nindent 12 }}
-	  {{- if or .defaultValues.securityContext .securityContext }}
+          {{- if or .defaultValues.securityContext .securityContext }}
           securityContext:
             {{- .securityContext | default .defaultValues.securityContext | toYaml | nindent 12 }}
-	  {{- end}}
-
+          {{- end}}
+          {{- if .livenessProbe }}
+          livenessProbe:
+            {{- .livenessProbe | toYaml | nindent 12 }}
+          {{- end }}
       {{- if .configuration }}
           volumeMounts:
           - name: config
@@ -69,10 +71,15 @@ spec:
           configMap:
             name: {{ include "otel-demo.name" . }}-{{ .name }}-config
       {{- end }}
+      {{- if .initContainers }}
+      initContainers:
+        {{- tpl (toYaml .initContainers) . | nindent 8 }}
+      {{- end}}
 {{- end }}
 
 {{- define "otel-demo.service" }}
-{{- if or .ports .servicePort}}
+{{- if or .ports .service}}
+{{- $service := .service | default dict }}
 ---
 apiVersion: v1
 kind: Service
@@ -80,8 +87,12 @@ metadata:
   name: {{ include "otel-demo.name" . }}-{{ .name }}
   labels:
     {{- include "otel-demo.labels" . | nindent 4 }}
+  {{- with $service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
-  type: {{ .serviceType | default "ClusterIP" }}
+  type: {{ $service.type | default "ClusterIP" }}
   ports:
     {{- if .ports }}
     {{- range $port := .ports }}
@@ -91,10 +102,13 @@ spec:
     {{- end }}
     {{- end }}
 
-    {{- if .servicePort }}
-    - port: {{.servicePort}}
-      name: service
-      targetPort: {{ .servicePort }}
+    {{- if $service.port }}
+    - port: {{ $service.port}}
+      name: tcp-service
+      targetPort: {{ $service.port }}
+      {{- if $service.nodePort }}
+      nodePort: {{ $service.nodePort }}
+      {{- end }}
     {{- end }}
   selector:
     {{- include "otel-demo.selectorLabels" . | nindent 4 }}
@@ -123,7 +137,13 @@ data:
 {{- $hasIngress = true }}
 {{- end }}
 {{- end }}
-{{- if and $hasIngress (or .ports .servicePort) }}
+{{- $hasServicePorts := false}}
+{{- if .service }}
+{{- if .service.port }}
+{{- $hasServicePorts = true }}
+{{- end }}
+{{- end }}
+{{- if and $hasIngress (or .ports $hasServicePorts) }}
 {{- $ingresses := list .ingress }}
 {{- if .ingress.additionalIngresses }}
 {{-   $ingresses := concat $ingresses .ingress.additionalIngresses -}}

@@ -4,7 +4,7 @@ metadata:
   labels:
     {{- include "opentelemetry-operator.labels" . | nindent 4 }}
     app.kubernetes.io/component: controller-manager
-  name: {{ template "opentelemetry-operator.name" . }}-controller-manager
+  name: {{ template "opentelemetry-operator.fullname" . }}
   namespace: {{ .Release.Namespace }}
 spec:
   replicas: {{ .Values.replicaCount }}
@@ -15,11 +15,18 @@ spec:
   template:
     metadata:
       annotations:
+        {{- if .Values.manager.rolling }}
+        rollme: {{ randAlphaNum 5 | quote }}
+        {{- end }}
         kubectl.kubernetes.io/default-container: manager
+        {{- if .Values.manager.podAnnotations }}
         {{- include "opentelemetry-operator.podAnnotations" . | nindent 8 }}
+        {{- end }}
       labels:
         {{- include "opentelemetry-operator.selectorLabels" . | nindent 8 }}
+        {{- if .Values.manager.podLabels }}
         {{- include "opentelemetry-operator.podLabels" . | nindent 8 }}
+        {{- end }}
         app.kubernetes.io/component: controller-manager
     spec:
       hostNetwork: {{ .Values.hostNetwork }}
@@ -96,6 +103,9 @@ spec:
               name: cert
               readOnly: true
           {{- end }}
+          {{- with .Values.manager.securityContext }}
+          securityContext: {{ toYaml . | nindent 12 }}
+          {{- end }}
         {{ if .Values.kubeRBACProxy.enabled }}
         - args:
             - --secure-listen-address=0.0.0.0:{{ .Values.kubeRBACProxy.ports.proxyPort }}
@@ -114,6 +124,9 @@ spec:
           {{- with .Values.kubeRBACProxy.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.kubeRBACProxy.securityContext }}
+          securityContext: {{ toYaml . | nindent 12 }}
+          {{- end }}
         {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -131,14 +144,14 @@ spec:
       {{- with .Values.topologySpreadConstraints }}
       topologySpreadConstraints: {{ toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ template "opentelemetry-operator.serviceAccountName" . }}-controller-manager
+      serviceAccountName: {{ template "opentelemetry-operator.serviceAccountName" . }}
       terminationGracePeriodSeconds: 10
       {{- if or .Values.admissionWebhooks.create .Values.admissionWebhooks.secretName }}
       volumes:
         - name: cert
           secret:
             defaultMode: 420
-            secretName: {{ default (printf "%s-controller-manager-service-cert" (include "opentelemetry-operator.name" .)) .Values.admissionWebhooks.secretName }}
+            secretName: {{ default (printf "%s-controller-manager-service-cert" (include "opentelemetry-operator.fullname" .)) .Values.admissionWebhooks.secretName }}
       {{- end }}
       securityContext:
 {{ toYaml .Values.securityContext | indent 8 }}

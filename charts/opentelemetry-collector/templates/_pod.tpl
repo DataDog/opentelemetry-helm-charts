@@ -7,7 +7,7 @@ serviceAccountName: {{ include "opentelemetry-collector.serviceAccountName" . }}
 securityContext:
   {{- toYaml .Values.podSecurityContext | nindent 2 }}
 containers:
-  - name: {{ .Chart.Name }}
+  - name: {{ include "opentelemetry-collector.lowercase_chartname" . }}
     command:
       - /{{ .Values.command.name }}
       {{- if .Values.configMap.create }}
@@ -35,9 +35,6 @@ containers:
       - name: {{ $key }}
         containerPort: {{ $port.containerPort }}
         protocol: {{ $port.protocol }}
-        {{- if $port.appProtocol }}
-        appProtocol: {{ $port.appProtocol }}
-        {{- end }}
         {{- if and $.isAgent $port.hostPort }}
         hostPort: {{ $port.hostPort }}
         {{- end }}
@@ -49,7 +46,7 @@ containers:
           fieldRef:
             apiVersion: v1
             fieldPath: status.podIP
-      {{- if .Values.presets.kubeletMetrics.enabled }}
+      {{- if or .Values.presets.kubeletMetrics.enabled (and .Values.presets.kubernetesAttributes.enabled (eq .Values.mode "daemonset")) }}
       - name: K8S_NODE_NAME
         valueFrom:
           fieldRef:
@@ -70,12 +67,14 @@ containers:
       httpGet:
         path: /
         port: 13133
+    {{- with .Values.resources }}
     resources:
-      {{- toYaml .Values.resources | nindent 6 }}
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
     volumeMounts:
       {{- if .Values.configMap.create }}
       - mountPath: /conf
-        name: {{ .Chart.Name }}-configmap
+        name: {{ include "opentelemetry-collector.lowercase_chartname" . }}-configmap
       {{- end }}
       {{- range .Values.extraConfigMapMounts }}
       - name: {{ .name }}
@@ -134,7 +133,7 @@ priorityClassName: {{ .Values.priorityClassName | quote }}
 {{- end }}
 volumes:
   {{- if .Values.configMap.create }}
-  - name: {{ .Chart.Name }}-configmap
+  - name: {{ include "opentelemetry-collector.lowercase_chartname" . }}-configmap
     configMap:
       name: {{ include "opentelemetry-collector.fullname" . }}{{ .configmapSuffix }}
       items:
@@ -188,6 +187,10 @@ affinity:
 {{- end }}
 {{- with .Values.tolerations }}
 tolerations:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.topologySpreadConstraints }}
+topologySpreadConstraints:
   {{- toYaml . | nindent 2 }}
 {{- end }}
 {{- end }}

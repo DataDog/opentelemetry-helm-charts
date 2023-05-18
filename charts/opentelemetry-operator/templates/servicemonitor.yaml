@@ -2,12 +2,16 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ template "opentelemetry-operator.name" . }}
+  name: {{ template "opentelemetry-operator.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "opentelemetry-operator.labels" . | nindent 4 }}
     app.kubernetes.io/component: controller-manager
     {{- range $key, $value := .Values.manager.serviceMonitor.extraLabels }}
+    {{- printf "%s: %s" $key (tpl $value $ | quote) | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- range $key, $value := .Values.manager.serviceMonitor.annotations }}
     {{- printf "%s: %s" $key (tpl $value $ | quote) | nindent 4 }}
     {{- end }}
 spec:

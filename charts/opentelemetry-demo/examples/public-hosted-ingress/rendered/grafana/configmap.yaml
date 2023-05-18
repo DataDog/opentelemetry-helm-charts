@@ -6,10 +6,10 @@ metadata:
   name: example-grafana
   namespace: default
   labels:
-    helm.sh/chart: grafana-6.45.1
+    helm.sh/chart: grafana-6.52.8
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "9.3.0"
+    app.kubernetes.io/version: "9.4.7"
     app.kubernetes.io/managed-by: Helm
 data:
   grafana.ini: |
@@ -39,6 +39,13 @@ data:
     datasources:
     - editable: true
       isDefault: true
+      jsonData:
+        exemplarTraceIdDestinations:
+        - datasourceUid: webstore-traces
+          name: trace_id
+        - name: trace_id
+          url: http://localhost:8080/jaeger/ui/trace/$${__value.raw}
+          urlDisplayLabel: View in Jaeger UI
       name: Prometheus
       type: prometheus
       uid: webstore-metrics

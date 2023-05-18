@@ -40,6 +40,12 @@ presets:
   # Best used with mode = daemonset.
   kubernetesAttributes:
     enabled: false
+  # Configures the collector to collect kubernetes events.
+  # Adds the k8sobject receiver to the logs pipeline
+  # and collects kubernetes events by default.
+  # Best used with mode = deployment or statefulset.
+  kubernetesEvents:
+    enabled: false
   # Configures the Kubernetes Cluster Receiver to collect cluster-level metrics.
   # Adds the k8s_cluster receiver to the metrics pipeline
   # and adds the necessary rules to ClusteRole.
@@ -77,17 +83,17 @@ config:
     jaeger:
       protocols:
         grpc:
-          endpoint: 0.0.0.0:14250
+          endpoint: ${env:MY_POD_IP}:14250
         thrift_http:
-          endpoint: 0.0.0.0:14268
+          endpoint: ${env:MY_POD_IP}:14268
         thrift_compact:
-          endpoint: 0.0.0.0:6831
+          endpoint: ${env:MY_POD_IP}:6831
     otlp:
       protocols:
         grpc:
-          endpoint: 0.0.0.0:4317
+          endpoint: ${env:MY_POD_IP}:4317
         http:
-          endpoint: 0.0.0.0:4318
+          endpoint: ${env:MY_POD_IP}:4318
     prometheus:
       config:
         scrape_configs:
@@ -95,13 +101,13 @@ config:
             scrape_interval: 10s
             static_configs:
               - targets:
-                  - ${MY_POD_IP}:8888
+                  - ${env:MY_POD_IP}:8888
     zipkin:
-      endpoint: 0.0.0.0:9411
+      endpoint: ${env:MY_POD_IP}:9411
   service:
     telemetry:
       metrics:
-        address: 0.0.0.0:8888
+        address: ${env:MY_POD_IP}:8888
     extensions:
       - health_check
       - memory_ballast
@@ -198,6 +204,7 @@ securityContext: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
+topologySpreadConstraints: []
 
 # Allows for pod scheduler prioritisation
 priorityClassName: ""
@@ -207,6 +214,7 @@ extraVolumes: []
 extraVolumeMounts: []
 
 # Configuration for ports
+# nodePort is also allowed
 ports:
   otlp:
     enabled: true
@@ -214,6 +222,8 @@ ports:
     servicePort: 4317
     hostPort: 4317
     protocol: TCP
+    # nodePort: 30317
+    appProtocol: grpc
   otlp-http:
     enabled: true
     containerPort: 4318
@@ -253,10 +263,11 @@ ports:
     protocol: TCP
 
 # Resource limits & requests. Update according to your own use case as these values might be too low for a typical deployment.
-resources:
-  limits:
-    cpu: 256m
-    memory: 512Mi
+resources: {}
+# resources:
+#   limits:
+#     cpu: 256m
+#     memory: 512Mi
 
 podAnnotations: {}
 
@@ -270,6 +281,9 @@ dnsPolicy: ""
 
 # only used with deployment mode
 replicaCount: 1
+
+# only used with deployment mode
+revisionHistoryLimit: 10
 
 annotations: {}
 
@@ -288,18 +302,28 @@ extraContainers: []
 #         mountPath: /test
 
 # List of init container specs, e.g. for copying a binary to be executed as a lifecycle hook.
+# Another usage of init containers is e.g. initializing filesystem permissions to the OTLP Collector user `10001` in case you are using persistence and the volume is producing a permission denied error for the OTLP Collector container.
 initContainers: []
 # initContainers:
 #   - name: test
+#     image: busybox:latest
 #     command:
 #       - cp
 #     args:
 #       - /bin/sleep
 #       - /test/sleep
-#     image: busybox:latest
 #     volumeMounts:
 #       - name: test
 #         mountPath: /test
+#  - name: init-fs
+#    image: busybox:latest
+#    command:
+#      - sh
+#      - '-c'
+#      - 'chown -R 10001: /var/lib/storage/otc' # use the path given as per `extensions.file_storage.directory` & `extraVolumeMounts[x].mountPath`
+#    volumeMounts:
+#      - name: opentelemetry-collector-data # use the name of the volume used for persistence
+#        mountPath: /var/lib/storage/otc # use the path given as per `extensions.file_storage.directory` & `extraVolumeMounts[x].mountPath`
 
 # Pod lifecycle policies.
 lifecycleHooks: {}
@@ -314,6 +338,7 @@ service:
   type: ClusterIP
   # type: LoadBalancer
   # loadBalancerIP: 1.2.3.4
+  # loadBalancerSourceRanges: []
   annotations: {}
 
 ingress:
@@ -384,6 +409,7 @@ autoscaling:
   enabled: false
   minReplicas: 1
   maxReplicas: 10
+  behavior: {}
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
@@ -408,3 +434,55 @@ statefulset:
   # volumeClaimTemplates for a statefulset
   volumeClaimTemplates: []
   podManagementPolicy: "Parallel"
+
+networkPolicy:
+  enabled: false
+
+  # Annotations to add to the NetworkPolicy
+  annotations: {}
+
+  # Configure the 'from' clause of the NetworkPolicy.
+  # By default this will restrict traffic to ports enabled for the Collector. If
+  # you wish to further restrict traffic to other hosts or specific namespaces,
+  # see the standard NetworkPolicy 'spec.ingress.from' definition for more info:
+  # https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/network-policy-v1/
+  allowIngressFrom: []
+  # # Allow traffic from any pod in any namespace, but not external hosts
+  # - namespaceSelector: {}
+  # # Allow external access from a specific cidr block
+  # - ipBlock:
+  #     cidr: 192.168.1.64/32
+  # # Allow access from pods in specific namespaces
+  # - namespaceSelector:
+  #     matchExpressions:
+  #       - key: kubernetes.io/metadata.name
+  #         operator: In
+  #         values:
+  #           - "cats"
+  #           - "dogs"
+
+  # Add additional ingress rules to specific ports
+  # Useful to allow external hosts/services to access specific ports
+  # An example is allowing an external prometheus server to scrape metrics
+  #
+  # See the standard NetworkPolicy 'spec.ingress' definition for more info:
+  # https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/network-policy-v1/
+  extraIngressRules: []
+  # - ports:
+  #   - port: metrics
+  #     protocol: TCP
+  #   from:
+  #     - ipBlock:
+  #         cidr: 192.168.1.64/32
+
+  # Restrict egress traffic from the OpenTelemetry collector pod
+  # See the standard NetworkPolicy 'spec.egress' definition for more info:
+  # https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/network-policy-v1/
+  egressRules: []
+  #  - to:
+  #      - namespaceSelector: {}
+  #      - ipBlock:
+  #          cidr: 192.168.10.10/24
+  #    ports:
+  #      - port: 1234
+  #        protocol: TCP
