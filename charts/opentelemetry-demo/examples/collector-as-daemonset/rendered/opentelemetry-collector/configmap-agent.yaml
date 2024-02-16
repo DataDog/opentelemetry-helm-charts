@@ -18,7 +18,6 @@ data:
       spanmetrics: null
     exporters:
       debug: {}
-      logging: {}
       otlp:
         endpoint: 'example-jaeger-collector:4317'
         tls:
