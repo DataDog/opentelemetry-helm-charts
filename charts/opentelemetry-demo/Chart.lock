@@ -1,18 +1,18 @@
 dependencies:
 - name: opentelemetry-collector
   repository: https://open-telemetry.github.io/opentelemetry-helm-charts
-  version: 0.96.0
+  version: 0.110.3
 - name: jaeger
   repository: https://jaegertracing.github.io/helm-charts
-  version: 3.1.0
+  version: 3.3.3
 - name: prometheus
   repository: https://prometheus-community.github.io/helm-charts
-  version: 25.22.0
+  version: 26.0.0
 - name: grafana
   repository: https://grafana.github.io/helm-charts
-  version: 7.3.11
+  version: 8.6.4
 - name: opensearch
   repository: https://opensearch-project.github.io/helm-charts
-  version: 2.19.0
-digest: sha256:0c48f2b2e6cbb8b3189fe3b952200d47f05e0c11a3b5bbf2567bba27ac741e02
-generated: "2024-06-28T17:38:12.894913577+02:00"
+  version: 2.27.1
+digest: sha256:2e2e8f2ccffb71336fe3ed52ed58577d3ea28ee13a0ca3dab44f27d311d559f5
+generated: "2024-12-04T09:22:35.686227+01:00"

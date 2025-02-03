@@ -14,7 +14,7 @@ metadata:
   {{- end }}
 spec:
 {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.replicaCount | default 1 }}
 {{- end }}
   revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
@@ -32,7 +32,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- include "opentelemetry-collector.configTemplateChecksumAnnotation" . | nindent 8 }}
         {{- include "opentelemetry-collector.podAnnotations" . | nindent 8 }}
       labels:
         {{- include "opentelemetry-collector.selectorLabels" . | nindent 8 }}

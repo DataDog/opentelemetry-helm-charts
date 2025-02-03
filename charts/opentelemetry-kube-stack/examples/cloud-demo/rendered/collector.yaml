@@ -6,9 +6,10 @@ metadata:
   name: example-cluster-stats
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-kube-stack-0.0.9
-    app.kubernetes.io/version: "0.103.0"
-    app.kubernetes.io/managed-by: Helm        
+    helm.sh/chart: opentelemetry-kube-stack-0.3.11
+    app.kubernetes.io/version: "0.107.0"
+    app.kubernetes.io/managed-by: Helm
+    release: "example"        
     opentelemetry.io/opamp-reporting: "true"
 spec:
   managementState: managed
@@ -132,11 +133,8 @@ spec:
           receivers:
           - k8s_cluster
   replicas: 1
-  image: "otel/opentelemetry-collector-k8s:0.103.1"
   imagePullPolicy: IfNotPresent
   upgradeStrategy: automatic
-  hostNetwork: false
-  shareProcessNamespace: false
   terminationGracePeriodSeconds: 30
   resources:
     limits:
@@ -189,9 +187,10 @@ metadata:
   name: example-daemon
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-kube-stack-0.0.9
-    app.kubernetes.io/version: "0.103.0"
-    app.kubernetes.io/managed-by: Helm        
+    helm.sh/chart: opentelemetry-kube-stack-0.3.11
+    app.kubernetes.io/version: "0.107.0"
+    app.kubernetes.io/managed-by: Helm
+    release: "example"        
     opentelemetry.io/opamp-reporting: "true"
 spec:
   managementState: managed
@@ -586,11 +585,8 @@ spec:
           - batch
           receivers:
           - otlp
-  image: "otel/opentelemetry-collector-k8s:0.103.1"
   imagePullPolicy: IfNotPresent
   upgradeStrategy: automatic
-  hostNetwork: false
-  shareProcessNamespace: false
   terminationGracePeriodSeconds: 30
   resources:
     limits:
@@ -599,8 +595,6 @@ spec:
     requests:
       cpu: 100m
       memory: 128Mi
-  args:
-    feature-gates: -confmap.unifyEnvVarExpansion
   securityContext:
     {}
   volumeMounts:
@@ -614,6 +608,12 @@ spec:
     mountPath: /hostfs
     readOnly: true
     mountPropagation: HostToContainer
+  ports:
+    - appProtocol: grpc
+      hostPort: 4317
+      name: otlp-grpc
+      port: 4317
+      protocol: TCP
   env:
   - name: OTEL_K8S_NODE_NAME
     valueFrom:

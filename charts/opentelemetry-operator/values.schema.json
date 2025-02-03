@@ -131,8 +131,8 @@
                 "autoInstrumentationImage",
                 "featureGates",
                 "ports",
-                "resources",
                 "env",
+                "extraEnvs",
                 "serviceAccount",
                 "serviceMonitor",
                 "deploymentAnnotations",
@@ -513,9 +513,66 @@
                 "featureGates": {
                     "type": "string",
                     "default": "",
+                    "title": "The featureGates to enable",
+                    "examples": ""
+                },
+                "featureGatesMap": {
+                    "type": "object",
+                    "default": {},
                     "title": "The featureGates Schema",
+                    "additionalProperties": false,
+                    "properties": {
+                        "operator.targetallocator.mtls": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "Whether to enable MTLS for Target Allocator communication",
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "operator.collector.targetallocatorcr": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "Whether to create TargetAllocator custom resource",
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "operator.sidecarcontainers.native": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "Inject sidecar containers using native K8s API",
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "operator.observability.prometheus": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "Whether the Prometheus Operator is installed",
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "operator.golang.flags": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "Set GOMEMLIMIT and GOMAXPROCS for collector automatically",
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "operator.collector.default.config": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "Set default endpoints for known components",
+                            "examples": [
+                                false
+                            ]
+                        }
+                    },
                     "examples": [
-                        ""
+                        {}
                     ]
                 },
                 "ports": {
@@ -564,10 +621,7 @@
                     "type": "object",
                     "default": {},
                     "title": "The resources Schema",
-                    "required": [
-                        "limits",
-                        "requests"
-                    ],
+                    "required": [],
                     "additionalProperties": false,
                     "properties": {
                         "limits": {
@@ -575,7 +629,7 @@
                             "default": {},
                             "title": "The limits Schema",
                             "required": [],
-                            "additionalProperties": false,
+                            "additionalProperties": true,
                             "properties": {
                                 "cpu": {
                                     "type": "string",
@@ -611,11 +665,8 @@
                             "type": "object",
                             "default": {},
                             "title": "The requests Schema",
-                            "required": [
-                                "cpu",
-                                "memory"
-                            ],
-                            "additionalProperties": false,
+                            "required": [],
+                            "additionalProperties": true,
                             "properties": {
                                 "cpu": {
                                     "type": "string",
@@ -670,6 +721,20 @@
                         "ENABLE_WEBHOOKS": "true"
                     }]
                 },
+                "extraEnvs": {
+                    "type": "array",
+                    "default": [],
+                    "title": "Extra definitions of environment variables",
+                    "examples": [{
+                      "name": "GOMEMLIMIT",
+                      "valueFrom": {
+                        "resourceFieldRef": {
+                          "containerName": "manager",
+                          "resource": "limits.memory"
+                        }
+                      }
+                    }]
+                },
                 "serviceAccount": {
                     "type": "object",
                     "default": {},
@@ -711,83 +776,103 @@
                     }]
                 },
                 "serviceMonitor": {
-                    "type": "object",
-                    "default": {},
-                    "title": "The serviceMonitor Schema",
-                    "required": [
-                        "enabled",
-                        "extraLabels",
-                        "annotations",
-                        "metricsEndpoints"
-                    ],
-                    "additionalProperties": false,
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean",
-                            "default": false,
-                            "title": "The enabled Schema",
-                            "examples": [
-                                false
-                            ]
-                        },
-                        "extraLabels": {
-                            "type": "object",
-                            "default": {},
-                            "title": "The extraLabels Schema",
-                            "required": [],
-                            "properties": {},
-                            "examples": [{}]
-                        },
-                        "annotations": {
-                            "type": "object",
-                            "default": {},
-                            "title": "The annotations Schema",
-                            "required": [],
-                            "properties": {},
-                            "examples": [{}]
-                        },
-                        "metricsEndpoints": {
-                            "type": "array",
-                            "default": [],
-                            "title": "The metricsEndpoints Schema",
-                            "items": {
-                                "type": "object",
-                                "default": {},
-                                "title": "A Schema",
-                                "required": [
-                                    "port"
-                                ],
-                                "additionalProperties": false,
-                                "properties": {
-                                    "port": {
-                                        "type": "string",
-                                        "default": "",
-                                        "title": "The port Schema",
-                                        "examples": [
-                                            "metrics"
-                                        ]
-                                    }
-                                },
-                                "examples": [{
-                                    "port": "metrics"
-                                }]
-                            },
-                            "examples": [
-                                [{
-                                    "port": "metrics"
-                                }]
-                            ]
-                        }
-                    },
-                    "examples": [{
-                        "enabled": false,
-                        "extraLabels": {},
-                        "annotations": {},
-                        "metricsEndpoints": [{
-                            "port": "metrics"
-                        }]
-                    }]
-                },
+                  "type": "object",
+                  "default": {},
+                  "title": "The serviceMonitor Schema",
+                  "required": [
+                      "enabled",
+                      "extraLabels",
+                      "annotations",
+                      "metricsEndpoints",
+                      "relabelings",
+                      "metricRelabelings"
+                  ],
+                  "properties": {
+                      "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "title": "The enabled Schema",
+                          "examples": [
+                              true
+                          ]
+                      },
+                      "extraLabels": {
+                          "type": "object",
+                          "default": {},
+                          "title": "The extraLabels Schema",
+                          "required": [],
+                          "properties": {},
+                          "examples": [{}]
+                      },
+                      "annotations": {
+                          "type": "object",
+                          "default": {},
+                          "title": "The annotations Schema",
+                          "required": [],
+                          "properties": {},
+                          "examples": [{}]
+                      },
+                      "metricsEndpoints": {
+                          "type": "array",
+                          "default": [],
+                          "title": "The metricsEndpoints Schema",
+                          "items": {
+                              "type": "object",
+                              "default": {},
+                              "title": "A Schema",
+                              "required": [
+                                  "port"
+                              ],
+                              "properties": {
+                                  "port": {
+                                      "type": "string",
+                                      "default": "",
+                                      "title": "The port Schema",
+                                      "examples": [
+                                          "metrics"
+                                      ]
+                                  }
+                              },
+                              "examples": [{
+                                  "port": "metrics"
+                              }]
+                          },
+                          "examples": [
+                              [{
+                                  "port": "metrics"
+                              }]
+                          ]
+                      },
+                      "relabelings": {
+                          "type": "array",
+                          "description": "Specify general relabeling",
+                          "default": [],
+                          "items": {}
+                      },
+                      "metricRelabelings": {
+                        "type": "array",
+                        "description": "Specify additional relabeling of metrics",
+                        "default": [],
+                        "items": {}
+                      }
+                  },
+                  "examples": [{
+                      "enabled": true,
+                      "extraLabels": {},
+                      "annotations": {},
+                      "metricsEndpoints": [{
+                          "port": "metrics"
+                      }],
+                      "relabelings": [{
+                          "sourceLabels": [
+                              "__meta_kubernetes_pod_node_name"
+                          ],
+                          "targetLabel": "node",
+                          "replacement": "${1}"
+                      }],
+                      "metricRelabelings": []
+                  }]
+              },
                 "deploymentAnnotations": {
                     "type": "object",
                     "default": {},
@@ -883,6 +968,14 @@
                                     "required": [],
                                     "properties": {},
                                     "examples": [{}]
+                                },
+                                "duration": {
+                                    "type": "string",
+                                    "default": {},
+                                    "title": "The prometheusRule duration to be considered firing",
+                                    "required": [],
+                                    "properties": {},
+                                    "examples": [{}]
                                 }
                             },
                             "examples": [{
@@ -903,6 +996,14 @@
                             "type": "object",
                             "default": {},
                             "title": "The annotations Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "runbookUrl": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The runbookUrl Schema",
                             "required": [],
                             "properties": {},
                             "examples": [{}]
@@ -1178,7 +1279,6 @@
                 "enabled",
                 "image",
                 "ports",
-                "resources",
                 "extraArgs",
                 "securityContext"
             ],
@@ -1250,10 +1350,7 @@
                     "type": "object",
                     "default": {},
                     "title": "The resources Schema",
-                    "required": [
-                        "limits",
-                        "requests"
-                    ],
+                    "required": [],
                     "additionalProperties": false,
                     "properties": {
                         "limits": {
@@ -1261,7 +1358,7 @@
                             "default": {},
                             "title": "The limits Schema",
                             "required": [],
-                            "additionalProperties": false,
+                            "additionalProperties": true,
                             "properties": {
                                 "cpu": {
                                     "type": "string",
@@ -1289,11 +1386,8 @@
                             "type": "object",
                             "default": {},
                             "title": "The requests Schema",
-                            "required": [
-                                "cpu",
-                                "memory"
-                            ],
-                            "additionalProperties": false,
+                            "required": [],
+                            "additionalProperties": true,
                             "properties": {
                                 "cpu": {
                                     "type": "string",

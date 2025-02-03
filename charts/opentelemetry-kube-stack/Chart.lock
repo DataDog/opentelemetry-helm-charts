@@ -4,6 +4,12 @@ dependencies:
   version: 0.0.0
 - name: opentelemetry-operator
   repository: https://open-telemetry.github.io/opentelemetry-helm-charts
-  version: 0.64.1
-digest: sha256:0b3f57dffe2c80f595bbc5af8e6f3764eac7ac9a6463f852d9453bdf1751eab3
-generated: "2024-07-11T14:21:31.680624-04:00"
+  version: 0.71.1
+- name: kube-state-metrics
+  repository: https://prometheus-community.github.io/helm-charts
+  version: 5.21.0
+- name: prometheus-node-exporter
+  repository: https://prometheus-community.github.io/helm-charts
+  version: 4.37.3
+digest: sha256:ff56967acb909bc46ee586a1034ab7f8969dec606a43c48989a5bad7e4791424
+generated: "2024-10-21T15:34:58.29871407+02:00"

@@ -5,9 +5,10 @@ kind: OpAMPBridge
 metadata:
   name: example
   labels:
-    helm.sh/chart: opentelemetry-kube-stack-0.0.9
-    app.kubernetes.io/version: "0.103.0"
-    app.kubernetes.io/managed-by: Helm    
+    helm.sh/chart: opentelemetry-kube-stack-0.3.11
+    app.kubernetes.io/version: "0.107.0"
+    app.kubernetes.io/managed-by: Helm
+    release: "example"    
 spec:
   endpoint: http://opamp-server:8080
   capabilities:
@@ -23,7 +24,7 @@ spec:
     ReportsRemoteConfig: true
     ReportsStatus: true
   replicas: 1
-  image: "ghcr.io/open-telemetry/opentelemetry-operator/operator-opamp-bridge:0.103.0"
+  image: "ghcr.io/open-telemetry/opentelemetry-operator/operator-opamp-bridge:0.107.0"
   upgradeStrategy: automatic
   securityContext:
     runAsNonRoot: true

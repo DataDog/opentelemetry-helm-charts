@@ -1,7 +1,7 @@
 {{ range $_, $collector := $.Values.collectors -}}
 {{- if $collector.enabled -}}
 {{- $collector := (mergeOverwrite (deepCopy $.Values.defaultCRConfig) $collector) }}
-{{- $merged := (dict "Template" $.Template "Files" $.Files "Chart" $.Chart "clusterRole" $.Values.clusterRole "collector" $collector "Release" $.Release "fullnameOverride" $.Values.fullnameOverride "presets" $.Values.presets "namespace" (include "opentelemetry-kube-stack.namespace" $)) }}
+{{- $merged := (dict "Template" $.Template "Files" $.Files "Chart" $.Chart "clusterRole" $.Values.clusterRole "collector" $collector "Release" $.Release "fullnameOverride" $.Values.fullnameOverride "presets" $.Values.presets "namespace" (include "opentelemetry-kube-stack.namespace" $)  "kubelet" $.Values.kubelet) }}
 {{- $fullname := (include "opentelemetry-kube-stack.collectorFullname" $merged) }}
 ---
 apiVersion: opentelemetry.io/v1beta1
@@ -30,13 +30,17 @@ spec:
   {{- end }}
   {{- if $collector.image.digest }}
   image: "{{ $collector.image.repository }}@{{ $collector.image.digest }}"
-  {{- else }}
-  image: "{{ $collector.image.repository }}:{{ $collector.image.tag | default $.Chart.AppVersion }}"
+  {{- else if $collector.image.tag }}
+  image: "{{ $collector.image.repository }}:{{ $collector.image.tag }}"
   {{- end }}
   imagePullPolicy: {{ $collector.image.pullPolicy }}
   upgradeStrategy: {{ $collector.upgradeStrategy }}
+  {{- if $collector.hostNetwork }}
   hostNetwork: {{ $collector.hostNetwork }}
+  {{- end }}
+  {{- if $collector.shareProcessNamespace }}
   shareProcessNamespace: {{ $collector.shareProcessNamespace }}
+  {{- end }}
   {{- if $collector.priorityClassName }}
   priorityClassName: {{ $collector.priorityClassName }}
   {{- end }}
@@ -128,7 +132,7 @@ spec:
     mountPropagation: HostToContainer
   {{- end }}
   {{- with $collector.volumeMounts }}
-  {{- toYaml . | nindent 4 }}
+  {{- toYaml . | nindent 2 }}
   {{- end }}
   {{- with $collector.ports }}
   ports:
@@ -196,7 +200,7 @@ spec:
       path: /
   {{- end }}
   {{- with $collector.volumes }}
-  {{- toYaml . | nindent 4 }}
+  {{- toYaml . | nindent 2 }}
   {{- end }}
   {{- with $collector.initContainers }}
   initContainers:
